@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Session Generator</title>
+  <style>
+    body {
+      font-family: "Comic Sans MS", cursive, sans-serif;
+      background: black;
+      color: lime;
+      text-align: center;
+      padding: 2em;
+    }
+    .title {
+      font-size: 2.5em;
+      color: #0ff;
+      text-shadow: 0 0 10px #0ff;
+    }
+    button {
+      font-size: 1.5em;
+      padding: 0.6em 1.2em;
+      margin: 1em;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    input {
+      font-size: 1.2em;
+      padding: 0.4em;
+      margin-top: 1em;
+    }
+    #codeDisplay {
+      margin-top: 1.5em;
+      font-size: 1.4em;
+      word-break: break-word;
+      background: #111;
+      padding: 1em;
+      border-radius: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1 class="title">WhatsApp Session Generator</h1>
+  <div>
+    <input type="text" id="phoneInput" placeholder="Enter phone number" />
+    <br />
+    <button onclick="generateCode('qr')">Generate QR Code</button>
+    <button onclick="generateCode('pair')">Generate Pair Code</button>
+    <div id="codeDisplay"></div>
+  </div>
+  <audio autoplay loop hidden>
+    <source src="audio.mp3" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const ws = new WebSocket(`ws://${window.location.host}`);
+
+    function generateCode(method) {
+      const phone = document.getElementById("phoneInput").value.trim();
+      if (!phone) return alert("Please enter a phone number.");
+      ws.send(JSON.stringify({ phone, method }));
+    }
+
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      const codeDisplay = document.getElementById("codeDisplay");
+      codeDisplay.style.display = "block";
+
+      if (data.type === 'qr') {
+        codeDisplay.innerHTML = `<strong>Scan this QR:</strong><br><img src="https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${data.qr}" />`;
+      } else if (data.type === 'pair') {
+        codeDisplay.innerHTML = `<strong>Pair Code:</strong><br><code>${data.pairingCode}</code>`;
+      } else if (data.type === 'connected') {
+        codeDisplay.innerHTML = `<strong>Session Connected!</strong><br><code>${data.sessionId}</code>`;
+      }
+    };
+
+    ws.onopen = () => console.log("WebSocket connected");
+    ws.onclose = () => console.log("WebSocket disconnected");
+  </script>
+</body>
+</html>
